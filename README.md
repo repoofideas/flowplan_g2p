@@ -35,19 +35,41 @@ Scientific Paper → [Stage 1] → Concept Graph → [Stage 2] → Section Plan 
 
 ### Requirements
 - Python 3.8+
+- [uv](https://docs.astral.sh/uv/) - Fast Python package and project manager
 - AWS account with Bedrock access
 - AWS credentials configured (via AWS CLI, environment variables, or IAM roles)
 
-### Setup
+### Quick Start with uv
+
 ```bash
-# Clone or download the implementation
+# Install uv if you haven't already
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone the repository
+git clone https://github.com/repoofideas/flowplan_g2p.git
 cd flowplan_g2p
 
-# Install dependencies
-pip install -r requirements.txt
+# Create virtual environment and install dependencies
+uv sync
 
 # Configure AWS credentials (if not already done)
 aws configure
+```
+
+### Alternative Installation Methods
+
+**Install as a package:**
+```bash
+# Install directly from GitHub
+uv add git+https://github.com/repoofideas/flowplan_g2p.git
+
+# Or install in development mode
+uv sync --dev
+```
+
+**Traditional pip installation:**
+```bash
+pip install git+https://github.com/repoofideas/flowplan_g2p.git
 ```
 
 ### Dependencies
@@ -59,6 +81,22 @@ aws configure
 
 ### Command Line Interface
 
+**Using uv (recommended):**
+```bash
+# Basic usage
+uv run flowplan-g2p input_paper.md output_patent.md
+
+# With custom parameters
+uv run flowplan-g2p input_paper.md output_patent.md --candidates 5 --k 3 --tau-c 0.6
+
+# Export intermediate concept graph
+uv run flowplan-g2p input_paper.md output_patent.md --export-graph concept_graph.json
+
+# Validate setup only
+uv run flowplan-g2p --validate-only
+```
+
+**Traditional method:**
 ```bash
 # Basic usage
 python main.py input_paper.md output_patent.md
@@ -71,6 +109,11 @@ python main.py input_paper.md output_patent.md --export-graph concept_graph.json
 
 # Validate setup only
 python main.py --validate-only
+```
+
+**If installed as package:**
+```bash
+flowplan-g2p input_paper.md output_patent.md
 ```
 
 ### Parameters
@@ -121,6 +164,12 @@ section_plan = results['section_plan']
 
 Test the pipeline with sample data:
 
+**Using uv:**
+```bash
+uv run python test_pipeline.py
+```
+
+**Traditional method:**
 ```bash
 python test_pipeline.py
 ```

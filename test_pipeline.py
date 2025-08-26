@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """
 Test script for FlowPlan-G2P pipeline using sample data from Pap2Pat dataset.
+
+This script can be run with uv:
+    uv run python test_pipeline.py
+
+Or traditionally:
+    python test_pipeline.py
 """
 
 import sys
