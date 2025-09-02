@@ -24,10 +24,10 @@ def test_with_sample_data():
     """Test pipeline with the first available sample from Pap2Pat dataset."""
     
     # Find first available sample data
-    data_dir = Path("Pap2Pat/Pap2Pat/data")
+    data_dir = Path("Pap2Pat/data")
     if not data_dir.exists():
         print("❌ Error: Pap2Pat data directory not found")
-        print("Expected: Pap2Pat/Pap2Pat/data/")
+        print("Expected: Pap2Pat/data/")
         return False
     
     # Find first sample directory
