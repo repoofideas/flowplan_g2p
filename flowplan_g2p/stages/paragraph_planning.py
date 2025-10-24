@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Set, Tuple, Any
 from dataclasses import dataclass
 import math
 from ..graph import ConceptGraph, ConceptNode, NodeType, RelationType
-from ..llm_client import BedrockClaudeClient
+from ..llm_client import DeepSeekClient
 
 
 @dataclass 
@@ -38,7 +38,7 @@ class ParagraphPlanning:
     subgraphs and determine global ordering for patent section structure.
     """
     
-    def __init__(self, llm_client: BedrockClaudeClient):
+    def __init__(self, llm_client: DeepSeekClient):
         """
         Initialize paragraph planning stage.
         

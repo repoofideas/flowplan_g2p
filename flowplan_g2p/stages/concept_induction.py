@@ -8,7 +8,7 @@ as described in the FlowPlan-G2P paper.
 from typing import Dict, List, Optional, Tuple
 import json
 from ..graph import ConceptGraph, ConceptNode, ConceptEdge, NodeType, RelationType
-from ..llm_client import BedrockClaudeClient
+from ..llm_client import DeepSeekClient
 
 
 class ConceptGraphInduction:
@@ -17,7 +17,7 @@ class ConceptGraphInduction:
     from scientific papers and construct directed concept graphs.
     """
     
-    def __init__(self, llm_client: BedrockClaudeClient):
+    def __init__(self, llm_client: DeepSeekClient):
         """
         Initialize concept graph induction stage.
         

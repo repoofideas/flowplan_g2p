@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Tuple
 import os
 import time
 from .graph import ConceptGraph
-from .llm_client import BedrockClaudeClient, LLMConfig
+from .llm_client import DeepSeekClient, AnthropicClient, LLMConfig
 from .stages import ConceptGraphInduction, ParagraphPlanning, GraphConditionedGeneration
 from .stages.paragraph_planning import SectionSubgraph
 
@@ -20,7 +20,7 @@ class FlowPlanG2P:
     Coordinates the three stages: concept induction, paragraph planning, and generation.
     """
     
-    def __init__(self, llm_config: Optional[LLMConfig] = None, aws_region: str = "us-east-1"):
+    def __init__(self, llm_config: Optional[LLMConfig] = None, aws_region: str = "us-west-2"):
         """
         Initialize FlowPlan-G2P pipeline.
         
@@ -31,8 +31,11 @@ class FlowPlanG2P:
         self.llm_config = llm_config or LLMConfig()
         self.aws_region = aws_region
         
-        # Initialize LLM client
-        self.llm_client = BedrockClaudeClient(self.llm_config, aws_region)
+        # Initialize LLM client based on model_id
+        if "anthropic" in self.llm_config.model_id.lower():
+            self.llm_client = AnthropicClient(self.llm_config, aws_region)
+        else:
+            self.llm_client = DeepSeekClient(self.llm_config, aws_region)
         
         # Initialize pipeline stages
         self.concept_induction = ConceptGraphInduction(self.llm_client)
@@ -57,7 +60,7 @@ class FlowPlanG2P:
         try:
             # Test LLM connection
             if not self.llm_client.validate_connection():
-                print("Error: Cannot connect to AWS Bedrock Claude service")
+                print("Error: Cannot connect to AWS Bedrock service")
                 return False
             
             print("✓ AWS Bedrock connection validated")

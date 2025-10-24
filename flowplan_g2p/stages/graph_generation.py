@@ -7,7 +7,7 @@ description paragraphs by conditioning on structured subgraph representations.
 
 from typing import Dict, List, Optional
 from ..graph import ConceptGraph
-from ..llm_client import BedrockClaudeClient
+from ..llm_client import DeepSeekClient
 from .paragraph_planning import SectionSubgraph
 
 
@@ -17,7 +17,7 @@ class GraphConditionedGeneration:
     by conditioning on structured subgraph representations.
     """
     
-    def __init__(self, llm_client: BedrockClaudeClient):
+    def __init__(self, llm_client: DeepSeekClient):
         """
         Initialize graph-conditioned generation stage.
         
