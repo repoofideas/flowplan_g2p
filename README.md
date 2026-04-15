@@ -303,10 +303,11 @@ This checks provider connectivity, model access, and pipeline component initiali
 If you use this implementation, please cite the original paper:
 
 ```bibtex
-@article{flowplan_g2p_2025,
+@inproceedings{pan2026flowplan,
   title={FlowPlan-G2P: Graph-Based Paragraph Planning for Structured Patent Description Generation},
-  author={Anonymous ACL submission},
-  year={2025}
+  author={Pan, Kris W and Yoo, Yongmin},
+  booktitle={Proceedings of the 64th Annual Meeting of the Association for Computational Linguistics (ACL)},
+  year={2026}
 }
 ```
 
