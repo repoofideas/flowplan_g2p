@@ -2,10 +2,12 @@
 import json
 from collections import defaultdict
 
-files = [
-    "sonnet4.5_evaluation_results.json",
+import sys
 
-]
+files = sys.argv[1:] if len(sys.argv) > 1 else []
+if not files:
+    print("Usage: python -m flowplan_g2p.evaluation.calculate_average_scores <file1.json> [file2.json ...]")
+    sys.exit(1)
 
 for file in files:
     totals = defaultdict(lambda: defaultdict(list))

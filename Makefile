@@ -1,4 +1,4 @@
-.PHONY: help install test clean lint format type-check dev-install run-test build
+.PHONY: help install test clean lint format type-check dev-install build
 
 help:  ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -10,9 +10,7 @@ dev-install:  ## Install with development dependencies
 	uv sync --dev
 
 test:  ## Run tests
-	uv run python test_pipeline.py
-
-run-test: test  ## Alias for test
+	uv run pytest tests/ -v
 
 clean:  ## Clean build artifacts and cache
 	rm -rf build/
@@ -24,10 +22,10 @@ clean:  ## Clean build artifacts and cache
 	find . -type f -name "*.pyc" -delete
 
 lint:  ## Run linting (flake8)
-	uv run flake8 flowplan_g2p/ main.py test_pipeline.py
+	uv run flake8 flowplan_g2p/ tests/ main.py
 
 format:  ## Format code with Black
-	uv run black flowplan_g2p/ main.py test_pipeline.py
+	uv run black flowplan_g2p/ tests/ main.py
 
 type-check:  ## Run type checking with mypy
 	uv run mypy flowplan_g2p/
@@ -37,12 +35,8 @@ check: lint type-check  ## Run all checks (lint + type-check)
 build:  ## Build the package
 	uv build
 
-cli-test:  ## Test CLI with validation only
-	uv run flowplan-g2p --validate-only
-
-example:  ## Run example with sample data (requires AWS setup)
-	@echo "Running example with first available sample..."
-	uv run python test_pipeline.py
+cli-test:  ## Test CLI with validation only (requires provider API key)
+	uv run flowplan-g2p --validate-only --provider openai
 
 dev-setup:  ## Complete development setup
 	@echo "Setting up development environment..."
@@ -51,11 +45,6 @@ dev-setup:  ## Complete development setup
 	@echo "Run 'make help' to see available commands"
 
 quality: format lint type-check  ## Run all quality checks and formatting
-
-# AWS related
-aws-check:  ## Check AWS configuration
-	@echo "Checking AWS configuration..."
-	@aws sts get-caller-identity || echo "AWS credentials not configured"
 
 # Documentation
 docs:  ## Generate documentation (placeholder)

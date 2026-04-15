@@ -54,48 +54,26 @@ def compute_scores(generated_dir, data_dir):
     return results
 
 if __name__ == "__main__":
-    generated_dir = "/home/kriswpan/repo/flowplan_g2p/output_sonnet4.5"
-    data_dir = "/home/kriswpan/repo/flowplan_g2p/Pap2Pat/data"
-    
+    import sys
+
+    if len(sys.argv) != 3:
+        print("Usage: python -m flowplan_g2p.evaluation.bertscore_eval <generated_dir> <data_dir>")
+        sys.exit(1)
+
+    generated_dir = sys.argv[1]
+    data_dir = sys.argv[2]
+
     results = compute_scores(generated_dir, data_dir)
-    
-    # Calculate averages
-    avg_bertscore = {
-        "precision": sum(r["bertscore"]["precision"] for r in results) / len(results),
-        "recall": sum(r["bertscore"]["recall"] for r in results) / len(results),
-        "f1": sum(r["bertscore"]["f1"] for r in results) / len(results)
-    }
-    
-    avg_rouge1 = {
-        "precision": sum(r["rouge1"]["precision"] for r in results) / len(results),
-        "recall": sum(r["rouge1"]["recall"] for r in results) / len(results),
-        "f1": sum(r["rouge1"]["f1"] for r in results) / len(results)
-    }
-    
-    avg_rouge2 = {
-        "precision": sum(r["rouge2"]["precision"] for r in results) / len(results),
-        "recall": sum(r["rouge2"]["recall"] for r in results) / len(results),
-        "f1": sum(r["rouge2"]["f1"] for r in results) / len(results)
-    }
-    
-    avg_rougeL = {
-        "precision": sum(r["rougeL"]["precision"] for r in results) / len(results),
-        "recall": sum(r["rougeL"]["recall"] for r in results) / len(results),
-        "f1": sum(r["rougeL"]["f1"] for r in results) / len(results)
-    }
-    
-    print(f"BERTScore - P: {avg_bertscore['precision']:.4f}, R: {avg_bertscore['recall']:.4f}, F1: {avg_bertscore['f1']:.4f}")
-    print(f"ROUGE-1 - P: {avg_rouge1['precision']:.4f}, R: {avg_rouge1['recall']:.4f}, F1: {avg_rouge1['f1']:.4f}")
-    print(f"ROUGE-2 - P: {avg_rouge2['precision']:.4f}, R: {avg_rouge2['recall']:.4f}, F1: {avg_rouge2['f1']:.4f}")
-    print(f"ROUGE-L - P: {avg_rougeL['precision']:.4f}, R: {avg_rougeL['recall']:.4f}, F1: {avg_rougeL['f1']:.4f}")
-    
+    if not results:
+        print("No results found.")
+        sys.exit(1)
+
+    def _avg(metric: str, key: str) -> float:
+        return sum(r[metric][key] for r in results) / len(results)
+
+    for metric in ("bertscore", "rouge1", "rouge2", "rougeL"):
+        print(f"{metric.upper()} - P: {_avg(metric, 'precision'):.4f}, "
+              f"R: {_avg(metric, 'recall'):.4f}, F1: {_avg(metric, 'f1'):.4f}")
+
     with open("evaluation_results.json", "w") as f:
-        json.dump({
-            "results": results, 
-            "averages": {
-                "bertscore": avg_bertscore,
-                "rouge1": avg_rouge1,
-                "rouge2": avg_rouge2,
-                "rougeL": avg_rougeL
-            }
-        }, f, indent=2)
+        json.dump({"results": results}, f, indent=2)

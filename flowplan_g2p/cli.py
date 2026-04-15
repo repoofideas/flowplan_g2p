@@ -21,8 +21,17 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Basic usage
+  # Basic usage (OpenAI, default)
   flowplan-g2p input_paper.md output_patent.md
+  
+  # Use Anthropic provider
+  flowplan-g2p input_paper.md output_patent.md --provider anthropic
+  
+  # Use a specific model with API key
+  flowplan-g2p input_paper.md output_patent.md --provider openai --model gpt-4o --api-key sk-...
+  
+  # Use AWS Bedrock
+  flowplan-g2p input_paper.md output_patent.md --provider bedrock --aws-region us-west-2
   
   # With custom parameters
   flowplan-g2p input_paper.md output_patent.md --candidates 5 --k 3 --tau-c 0.6
@@ -51,6 +60,13 @@ Examples:
                        help="Semantic consistency threshold for section planning (default: 0.6)")
     
     # LLM configuration
+    parser.add_argument("--provider", type=str, default="openai",
+                       choices=["openai", "anthropic", "bedrock"],
+                       help="LLM provider to use (default: openai)")
+    parser.add_argument("--model", type=str, default=None,
+                       help="Model identifier (e.g., gpt-4o, claude-sonnet-4-20250514); uses provider default if omitted")
+    parser.add_argument("--api-key", type=str, default=None,
+                       help="API key for the selected provider (falls back to environment variable if omitted)")
     parser.add_argument("--max-tokens", type=int, default=4096,
                        help="Maximum tokens for LLM generation (default: 4096)")
     parser.add_argument("--temperature", type=float, default=0.2,
@@ -77,13 +93,17 @@ Examples:
     
     # Configure LLM
     llm_config = LLMConfig(
+        provider=args.provider,
+        model_id=args.model,
+        api_key=args.api_key,
+        aws_region=args.aws_region,
         max_tokens=args.max_tokens,
         temperature=args.temperature
     )
     
     # Initialize pipeline
     try:
-        pipeline = FlowPlanG2P(llm_config=llm_config, aws_region=args.aws_region)
+        pipeline = FlowPlanG2P(llm_config=llm_config)
         
         if args.validate_only:
             print("🔍 Validating pipeline setup...")

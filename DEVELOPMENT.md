@@ -7,7 +7,6 @@ This guide covers development setup and best practices for FlowPlan-G2P using `u
 ### Prerequisites
 - Python 3.8+
 - [uv](https://docs.astral.sh/uv/) package manager
-- AWS account with Bedrock access
 
 ### Installation
 
@@ -26,7 +25,7 @@ This guide covers development setup and best practices for FlowPlan-G2P using `u
    ```bash
    # Create and sync virtual environment with dev dependencies
    uv sync --dev
-   
+
    # Activate the virtual environment (optional, uv run will use it automatically)
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    ```
@@ -34,24 +33,33 @@ This guide covers development setup and best practices for FlowPlan-G2P using `u
 ## Development Workflow
 
 ### Running Tests
-```bash
-# Run the test pipeline
-uv run python test_pipeline.py
 
-# Run with pytest (when available)
-uv run pytest tests/
+All tests run without API keys or network access — they use mocks for LLM calls.
+
+```bash
+# Run all tests
+uv run pytest tests/ -v
+
+# Run with coverage
+uv run pytest tests/ --cov=flowplan_g2p --cov-report=term-missing
+
+# Run a specific test file
+uv run pytest tests/test_graph.py -v
+
+# Run a specific test
+uv run pytest tests/test_llm_client.py::test_factory_returns_openai_client -v
 ```
 
 ### Code Quality
 
 **Format code with Black:**
 ```bash
-uv run black flowplan_g2p/ main.py test_pipeline.py
+uv run black flowplan_g2p/ tests/ main.py
 ```
 
 **Lint with flake8:**
 ```bash
-uv run flake8 flowplan_g2p/ main.py test_pipeline.py
+uv run flake8 flowplan_g2p/ tests/ main.py
 ```
 
 **Type checking with mypy:**
@@ -64,10 +72,10 @@ uv run mypy flowplan_g2p/
 **Development mode:**
 ```bash
 # Run directly from source
-uv run flowplan-g2p input.md output.md
+uv run flowplan-g2p input.md output.md --provider openai
 
 # Or use the main.py script
-uv run python main.py input.md output.md
+uv run python main.py input.md output.md --provider anthropic
 ```
 
 **Test installation:**
@@ -84,16 +92,27 @@ flowplan-g2p input.md output.md
 ```
 flowplan_g2p/
 ├── flowplan_g2p/           # Main package
-│   ├── __init__.py         # Package initialization
+│   ├── __init__.py         # Package public API
 │   ├── cli.py              # Command-line interface
 │   ├── graph.py            # Graph data structures
-│   ├── llm_client.py       # AWS Bedrock integration
-│   ├── pipeline.py         # Main pipeline
+│   ├── llm_client.py       # Multi-provider LLM client abstraction
+│   ├── pipeline.py         # Main pipeline orchestration
 │   └── stages/             # Pipeline stages
-├── main.py                 # Legacy CLI script
-├── test_pipeline.py        # Test script
+│       ├── __init__.py
+│       ├── concept_induction.py
+│       ├── paragraph_planning.py
+│       └── graph_generation.py
+├── tests/                  # Test suite (runs without API keys)
+│   ├── __init__.py
+│   ├── test_graph.py       # ConceptGraph unit tests
+│   ├── test_llm_client.py  # LLM client and factory tests
+│   ├── test_cli.py         # CLI argument parsing tests
+│   └── test_pipeline.py    # Pipeline integration tests
+├── main.py                 # Alternative CLI entry point
+├── .env.example            # Environment variable template
 ├── pyproject.toml          # Project configuration
 ├── uv.lock                 # Dependency lock file
+├── Makefile                # Development commands
 └── .python-version         # Python version specification
 ```
 
@@ -119,7 +138,7 @@ uv sync
 ### pyproject.toml
 Main project configuration including:
 - Package metadata
-- Dependencies (runtime and dev)
+- Dependencies (runtime, dev, test, bedrock optional)
 - Tool configurations (Black, mypy, pytest)
 - Build system configuration
 
@@ -128,6 +147,9 @@ Automatically generated lock file that pins exact versions of all dependencies f
 
 ### .python-version
 Specifies the Python version for the project (used by uv and other tools).
+
+### .env.example
+Template for environment variables. Copy to `.env` and fill in your API keys.
 
 ## Building and Publishing
 
@@ -139,20 +161,6 @@ uv build
 ### Install locally:
 ```bash
 uv pip install dist/*.whl
-```
-
-## AWS Configuration
-
-Ensure AWS credentials are configured for development:
-
-```bash
-# Configure AWS CLI
-aws configure
-
-# Or set environment variables
-export AWS_ACCESS_KEY_ID=your_key
-export AWS_SECRET_ACCESS_KEY=your_secret
-export AWS_REGION=us-east-1
 ```
 
 ## IDE Setup
@@ -186,12 +194,18 @@ Add to `.vscode/settings.json`:
 1. Create module in `flowplan_g2p/stages/`
 2. Import in `flowplan_g2p/stages/__init__.py`
 3. Integrate in `flowplan_g2p/pipeline.py`
-4. Add tests
+4. Add tests in `tests/`
 
 **Update CLI:**
 1. Modify `flowplan_g2p/cli.py`
 2. Update `main.py` if needed
 3. Test with `uv run flowplan-g2p --help`
+
+**Add new LLM provider:**
+1. Create a new subclass of `BaseLLMClient` in `flowplan_g2p/llm_client.py`
+2. Add the provider to `create_llm_client` factory function
+3. Update CLI `--provider` choices in `cli.py` and `main.py`
+4. Add tests in `tests/test_llm_client.py`
 
 **Add new dependencies:**
 1. Run `uv add package-name`

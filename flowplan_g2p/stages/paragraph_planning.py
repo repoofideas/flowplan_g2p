@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Set, Tuple, Any
 from dataclasses import dataclass
 import math
 from ..graph import ConceptGraph, ConceptNode, NodeType, RelationType
-from ..llm_client import DeepSeekClient
+from ..llm_client import BaseLLMClient
 
 
 @dataclass 
@@ -38,7 +38,7 @@ class ParagraphPlanning:
     subgraphs and determine global ordering for patent section structure.
     """
     
-    def __init__(self, llm_client: DeepSeekClient):
+    def __init__(self, llm_client: BaseLLMClient):
         """
         Initialize paragraph planning stage.
         
@@ -432,12 +432,11 @@ class ParagraphPlanning:
         Returns:
             Best valid candidate or fallback
         """
-        # Filter candidates that pass gating criteria
+        # Filter candidates that pass gating criteria (paper Section 4.2)
         valid_candidates = []
         for candidate in candidates:
             if (candidate.connectivity_score >= tau_c and 
-                candidate.consistency_score >= tau_s and 
-                candidate.penalty_score == 0):
+                candidate.consistency_score >= tau_s):
                 valid_candidates.append(candidate)
         
         if valid_candidates:

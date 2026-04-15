@@ -8,7 +8,7 @@ as described in the FlowPlan-G2P paper.
 from typing import Dict, List, Optional, Tuple
 import json
 from ..graph import ConceptGraph, ConceptNode, ConceptEdge, NodeType, RelationType
-from ..llm_client import DeepSeekClient
+from ..llm_client import BaseLLMClient
 
 
 class ConceptGraphInduction:
@@ -17,7 +17,7 @@ class ConceptGraphInduction:
     from scientific papers and construct directed concept graphs.
     """
     
-    def __init__(self, llm_client: DeepSeekClient):
+    def __init__(self, llm_client: BaseLLMClient):
         """
         Initialize concept graph induction stage.
         
@@ -189,7 +189,7 @@ class ConceptGraphInduction:
     
     def _perform_structured_reasoning(self, paper_content: str) -> Dict[NodeType, str]:
         """
-        Execute the 6-step structured reasoning process.
+        Execute the 9-step structured reasoning process.
         
         Args:
             paper_content: Full content of the scientific paper
@@ -440,12 +440,12 @@ class ConceptGraphInduction:
                 
             except Exception as e:
                 print(f"Warning: Failed to generate candidate graph {i+1}: {e}")
-                # Create minimal graph as fallback
+                # Create minimal graph as fallback (use _1 IDs to match primary graph for merge)
                 fallback_graph = ConceptGraph()
                 for node_type, content in reasoning_outputs.items():
                     if content and not content.startswith("Error"):
                         node = ConceptNode(
-                            id=f"{node_type.value.lower()}_{i+1}",
+                            id=f"{node_type.value.lower()}_1",
                             node_type=node_type,
                             content=content
                         )

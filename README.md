@@ -1,13 +1,13 @@
 # FlowPlan-G2P: Graph-Based Paragraph Planning for Structured Patent Description Generation
 
-A Python implementation of the FlowPlan-G2P framework that converts scientific papers into patent descriptions using a three-stage graph-based approach.
+A Python implementation of the FlowPlan-G2P framework that converts scientific papers into patent descriptions using a three-stage graph-based approach. Supports multiple LLM providers: OpenAI, Anthropic, and AWS Bedrock.
 
 ## Overview
 
 FlowPlan-G2P implements the methodology from the paper "FlowPlan-G2P: Graph-Based Paragraph Planning for Structured Patent Description Generation". The framework uses three sequential stages:
 
 1. **Concept Graph Induction**: Extract key technical concepts and relationships using structured reasoning
-2. **Paragraph Planning**: Organize concepts into coherent patent sections with proper ordering  
+2. **Paragraph Planning**: Organize concepts into coherent patent sections with proper ordering
 3. **Graph-Conditioned Generation**: Generate patent-style text conditioned on structured subgraphs
 
 ## Architecture
@@ -36,10 +36,8 @@ Scientific Paper → [Stage 1] → Concept Graph → [Stage 2] → Section Plan 
 ### Requirements
 - Python 3.8+
 - [uv](https://docs.astral.sh/uv/) - Fast Python package and project manager
-- AWS account with Bedrock access
-- AWS credentials configured (via AWS CLI, environment variables, or IAM roles)
 
-### Quick Start with uv
+### Quick Start
 
 ```bash
 # Install uv if you haven't already
@@ -51,69 +49,76 @@ cd flowplan_g2p
 
 # Create virtual environment and install dependencies
 uv sync
+```
 
-# Configure AWS credentials (if not already done)
+### Install with Bedrock Support
+
+If you plan to use AWS Bedrock as your LLM provider, install the optional Bedrock dependencies:
+
+```bash
+pip install flowplan-g2p[bedrock]
+# or with uv
+uv sync --extra bedrock
+```
+
+### Environment Variables
+
+Copy the `.env.example` file and fill in your API keys:
+
+```bash
+cp .env.example .env
+```
+
+Set the API key for your chosen provider:
+
+```bash
+# For OpenAI (default provider)
+export OPENAI_API_KEY=your-openai-api-key-here
+
+# For Anthropic
+export ANTHROPIC_API_KEY=your-anthropic-api-key-here
+
+# For AWS Bedrock, configure AWS credentials via AWS CLI or environment variables
 aws configure
 ```
-
-### Alternative Installation Methods
-
-**Install as a package:**
-```bash
-# Install directly from GitHub
-uv add git+https://github.com/repoofideas/flowplan_g2p.git
-
-# Or install in development mode
-uv sync --dev
-```
-
-**Traditional pip installation:**
-```bash
-pip install git+https://github.com/repoofideas/flowplan_g2p.git
-```
-
-### Dependencies
-- `boto3>=1.26.137` - AWS SDK for Bedrock integration
-- `json5>=0.9.6` - JSON parsing utilities
-- `typing-extensions>=4.5.0` - Type hints support
 
 ## Usage
 
 ### Command Line Interface
 
-**Using uv (recommended):**
+**OpenAI (default):**
 ```bash
-# Basic usage
-uv run flowplan-g2p input_paper.md output_patent.md
+uv run flowplan-g2p input_paper.md output_patent.md --provider openai
+```
 
-# With custom parameters
+**Anthropic:**
+```bash
+uv run flowplan-g2p input_paper.md output_patent.md --provider anthropic
+```
+
+**AWS Bedrock:**
+```bash
+uv run flowplan-g2p input_paper.md output_patent.md --provider bedrock --aws-region us-west-2
+```
+
+**With custom parameters:**
+```bash
 uv run flowplan-g2p input_paper.md output_patent.md --candidates 5 --k 3 --tau-c 0.6
+```
 
-# Export intermediate concept graph
+**Export intermediate concept graph:**
+```bash
 uv run flowplan-g2p input_paper.md output_patent.md --export-graph concept_graph.json
-
-# Validate setup only
-uv run flowplan-g2p --validate-only
 ```
 
-**Traditional method:**
+**Validate setup only:**
 ```bash
-# Basic usage
-python main.py input_paper.md output_patent.md
-
-# With custom parameters
-python main.py input_paper.md output_patent.md --candidates 5 --k 3 --tau-c 0.6
-
-# Export intermediate concept graph
-python main.py input_paper.md output_patent.md --export-graph concept_graph.json
-
-# Validate setup only
-python main.py --validate-only
+uv run flowplan-g2p --validate-only --provider openai
 ```
 
-**If installed as package:**
+**Using main.py directly:**
 ```bash
-flowplan-g2p input_paper.md output_patent.md
+uv run python main.py input_paper.md output_patent.md --provider anthropic
 ```
 
 ### Parameters
@@ -127,6 +132,9 @@ flowplan-g2p input_paper.md output_patent.md
 - `--tau-s FLOAT`: Semantic consistency threshold (default: 0.6)
 
 **LLM Configuration:**
+- `--provider`: LLM provider — `openai` (default), `anthropic`, or `bedrock`
+- `--model`: Model identifier (e.g., `gpt-4o`, `claude-sonnet-4-20250514`); uses provider default if omitted
+- `--api-key`: API key for the selected provider (falls back to environment variable if omitted)
 - `--max-tokens N`: Maximum tokens per generation (default: 4096)
 - `--temperature FLOAT`: Generation temperature (default: 0.2)
 - `--aws-region REGION`: AWS region for Bedrock (default: us-east-1)
@@ -134,16 +142,18 @@ flowplan-g2p input_paper.md output_patent.md
 ### Python API
 
 ```python
-from flowplan_g2p.pipeline import FlowPlanG2P
-from flowplan_g2p.llm_client import LLMConfig
+from flowplan_g2p import FlowPlanG2P, LLMConfig
 
-# Configure LLM
-config = LLMConfig(
-    max_tokens=4096,
-    temperature=0.2
-)
+# OpenAI (default)
+config = LLMConfig(provider="openai")
+pipeline = FlowPlanG2P(llm_config=config)
 
-# Initialize pipeline
+# Anthropic with explicit API key
+config = LLMConfig(provider="anthropic", api_key="your-anthropic-key")
+pipeline = FlowPlanG2P(llm_config=config)
+
+# AWS Bedrock
+config = LLMConfig(provider="bedrock", aws_region="us-west-2")
 pipeline = FlowPlanG2P(llm_config=config)
 
 # Process paper to patent
@@ -162,21 +172,11 @@ section_plan = results['section_plan']
 
 ### Testing
 
-Test the pipeline with sample data:
+Run the test suite (no API keys required):
 
-**Using uv:**
 ```bash
-uv run python test_pipeline.py
+uv run pytest tests/ -v
 ```
-
-**Traditional method:**
-```bash
-python test_pipeline.py
-```
-
-This will run the complete pipeline on a sample from the Pap2Pat dataset and generate:
-- `test_output_patent.md` - Generated patent description
-- `test_concept_graph.json` - Intermediate concept graph (if successful)
 
 ## Input/Output Format
 
@@ -185,92 +185,99 @@ This will run the complete pipeline on a sample from the Pap2Pat dataset and gen
 - **Content**: Scientific paper with standard academic structure (abstract, introduction, methods, results, etc.)
 - **Encoding**: UTF-8
 
-### Output  
+### Output
 - **Format**: Markdown (.md) files
 - **Structure**: Patent description with canonical sections:
   - Field of the Invention
   - Background of the Invention
-  - Summary of the Invention  
+  - Summary of the Invention
   - Detailed Description of the Invention
   - Effects of the Invention
 
-## AWS Configuration
+## Provider Notes
 
-### Bedrock Setup
-1. Ensure AWS Bedrock service is available in your region
-2. Request access to Claude Sonnet 4 model (`us.anthropic.claude-sonnet-4-20250514-v1:0`)
-3. Configure appropriate IAM permissions:
+### OpenAI
+- Default model: `gpt-4o`
+- Requires `OPENAI_API_KEY` environment variable or `--api-key` flag
 
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "bedrock:InvokeModel"
-            ],
-            "Resource": [
-                "arn:aws:bedrock:*::foundation-model/us.anthropic.claude-sonnet-4-20250514-v1:0"
-            ]
-        }
-    ]
-}
-```
+### Anthropic
+- Default model: `claude-sonnet-4-20250514`
+- Requires `ANTHROPIC_API_KEY` environment variable or `--api-key` flag
 
-### Authentication
-Configure AWS credentials using one of these methods:
-- AWS CLI: `aws configure`
-- Environment variables: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`
-- IAM roles (for EC2/Lambda deployment)
-- AWS credentials file
+### AWS Bedrock
+- Default model: `us.anthropic.claude-sonnet-4-20250514-v1:0`
+- Requires AWS credentials configured via AWS CLI, environment variables, or IAM roles
+- Install with: `pip install flowplan-g2p[bedrock]`
+- Ensure Bedrock service is available in your region and you have `bedrock:InvokeModel` permissions for your chosen model
 
 ## Project Structure
 
 ```
 flowplan_g2p/
 ├── flowplan_g2p/           # Main package
-│   ├── __init__.py
-│   ├── graph.py            # Custom graph data structures
-│   ├── llm_client.py       # AWS Bedrock Claude integration
+│   ├── __init__.py         # Package public API
+│   ├── cli.py              # Command-line interface
+│   ├── graph.py            # Graph data structures (ConceptGraph, ConceptNode, ConceptEdge)
+│   ├── llm_client.py       # Multi-provider LLM client abstraction
 │   ├── pipeline.py         # Main pipeline orchestration
 │   └── stages/             # Pipeline stages
 │       ├── __init__.py
-│       ├── concept_induction.py    # Stage 1
-│       ├── paragraph_planning.py   # Stage 2
-│       └── graph_generation.py     # Stage 3
-├── main.py                 # Command-line interface
-├── test_pipeline.py        # Test script
-├── requirements.txt        # Python dependencies
-└── README.md              # This file
+│       ├── concept_induction.py    # Stage 1: Concept Graph Induction
+│       ├── paragraph_planning.py   # Stage 2: Paragraph Planning
+│       └── graph_generation.py     # Stage 3: Graph-Conditioned Generation
+├── tests/                  # Test suite (runs without API keys)
+│   ├── test_graph.py
+│   ├── test_llm_client.py
+│   ├── test_cli.py
+│   └── test_pipeline.py
+├── main.py                 # Alternative CLI entry point
+├── .env.example            # Environment variable template
+├── pyproject.toml          # Project configuration
+├── Makefile                # Development commands
+├── DEVELOPMENT.md          # Development guide
+└── README.md               # This file
 ```
+
+## Evaluation Dataset
+
+The Pap2Pat dataset used for evaluation is available from the upstream repository:
+[https://github.com/Franck-Dernoncourt/Pap2Pat](https://github.com/Franck-Dernoncourt/Pap2Pat)
 
 ## Performance
 
-Typical execution times (depends on paper length and AWS region):
+Typical execution times (depends on paper length and provider):
 - **Stage 1** (Concept Induction): 30-60 seconds
-- **Stage 2** (Paragraph Planning): 10-20 seconds  
+- **Stage 2** (Paragraph Planning): 10-20 seconds
 - **Stage 3** (Text Generation): 20-40 seconds
 - **Total**: 1-2 minutes per paper
 
 ## Troubleshooting
 
-### Common Issues
+### API Key Issues
+- Ensure the correct environment variable is set for your provider (`OPENAI_API_KEY` or `ANTHROPIC_API_KEY`)
+- You can pass the key directly with `--api-key` to bypass environment variables
+- Run `flowplan-g2p --validate-only --provider <your-provider>` to test connectivity
 
-**AWS Connection Errors:**
-- Verify AWS credentials are configured correctly
-- Check that your region supports Bedrock
-- Ensure Claude Sonnet 4 model access is granted
+### Provider-Specific Issues
 
-**Rate Limiting:**
+**OpenAI:**
+- Verify your API key has access to the model you're using (default: `gpt-4o`)
+- Check your OpenAI account for rate limits or billing issues
+
+**Anthropic:**
+- Verify your API key is valid and has access to the model (default: `claude-sonnet-4-20250514`)
+- Check Anthropic console for rate limits
+
+**AWS Bedrock:**
+- Ensure `boto3` is installed: `pip install flowplan-g2p[bedrock]`
+- Verify AWS credentials are configured: `aws sts get-caller-identity`
+- Check that Bedrock is available in your region and model access is granted
+
+### Rate Limiting
 - The client includes automatic retry with exponential backoff
 - If you encounter persistent rate limits, increase retry delays or reduce concurrency
 
-**Memory Issues:**
-- For very large papers, consider reducing `max_tokens` parameter
-- Process papers in smaller chunks if necessary
-
-**Generation Quality:**
+### Generation Quality
 - Adjust `temperature` parameter (lower = more conservative)
 - Increase `num_candidates` for better concept graph quality
 - Tune `tau_c` and `tau_s` thresholds for section planning
@@ -279,17 +286,13 @@ Typical execution times (depends on paper length and AWS region):
 
 Always run validation before processing:
 ```bash
-python main.py --validate-only
+uv run flowplan-g2p --validate-only --provider openai
 ```
 
-This checks:
-- AWS Bedrock connectivity
-- Model access permissions
-- Pipeline component initialization
+This checks provider connectivity, model access, and pipeline component initialization.
 
 ## Limitations
 
-- Requires AWS Bedrock access with Claude Sonnet 4
 - Optimized for English-language scientific papers
 - Patent output follows US patent format conventions
 - Processing time scales with paper length
@@ -309,4 +312,4 @@ If you use this implementation, please cite the original paper:
 
 ## License
 
-This implementation is provided for research purposes. Please refer to the original paper for licensing terms.
+This implementation is provided for research purposes. Please refer to the LICENSE file for terms.

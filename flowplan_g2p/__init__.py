@@ -12,7 +12,7 @@ __version__ = "1.0.0"
 __author__ = "FlowPlan-G2P Implementation"
 
 from .graph import ConceptGraph, ConceptNode, ConceptEdge
-from .llm_client import DeepSeekClient
+from .llm_client import BaseLLMClient, LLMConfig, create_llm_client
 from .pipeline import FlowPlanG2P
 from .stages import ConceptGraphInduction, ParagraphPlanning, GraphConditionedGeneration
 
@@ -20,7 +20,9 @@ __all__ = [
     "ConceptGraph",
     "ConceptNode", 
     "ConceptEdge",
-    "DeepSeekClient",
+    "BaseLLMClient",
+    "LLMConfig",
+    "create_llm_client",
     "FlowPlanG2P",
     "ConceptGraphInduction",
     "ParagraphPlanning", 

@@ -70,6 +70,13 @@ test_output_*.md
 test_concept_graph.json
 *.log
 
+# Experiment data and outputs
+146_*/
+few_*/
+zero_*/
+Pap2Pat/
+*.zip
+
 # Documentation
 docs/_build/
 

@@ -28,12 +28,15 @@ classifiers = [
 keywords = ["patent", "nlp", "graph", "text-generation", "scientific-papers"]
 requires-python = ">=3.8"
 dependencies = [
-    "boto3>=1.26.137",
+    "openai>=1.0.0",
+    "anthropic>=0.20.0",
     "json5>=0.9.6",
     "typing-extensions>=4.5.0",
 ]
 
 [project.optional-dependencies]
+bedrock = ["boto3>=1.26.137"]
+eval = ["bert-score>=0.3.13", "rouge-score>=0.1.2"]
 dev = [
     "pytest>=7.0.0",
     "black>=22.0.0",
@@ -43,6 +46,7 @@ dev = [
 test = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
+    "hypothesis>=6.0.0",
 ]
 
 [project.urls]
