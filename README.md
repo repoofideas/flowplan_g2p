@@ -1,316 +1,123 @@
-# FlowPlan-G2P: Graph-Based Paragraph Planning for Structured Patent Description Generation
+<div align="center">
 
-A Python implementation of the FlowPlan-G2P framework that converts scientific papers into patent descriptions using a three-stage graph-based approach. Supports multiple LLM providers: OpenAI, Anthropic, and AWS Bedrock.
+# FlowPlan-G2P
 
-## Overview
+**A Structured Generation Framework for Transforming Scientific Papers into Patent Descriptions**
 
-FlowPlan-G2P implements the methodology from the paper "FlowPlan-G2P: Graph-Based Paragraph Planning for Structured Patent Description Generation". The framework uses three sequential stages:
+Kris W Pan · Yongmin Yoo<br>
+*Equal contribution*
 
-1. **Concept Graph Induction**: Extract key technical concepts and relationships using structured reasoning
-2. **Paragraph Planning**: Organize concepts into coherent patent sections with proper ordering
-3. **Graph-Conditioned Generation**: Generate patent-style text conditioned on structured subgraphs
+Accepted to **Findings of EACL 2027**
 
-## Architecture
+[![arXiv paper](https://img.shields.io/badge/arXiv-2601.02589-B31B1B?style=flat-square&logo=arxiv)](https://arxiv.org/abs/2601.02589)
+[![Paper PDF](https://img.shields.io/badge/Paper-PDF-27476E?style=flat-square)](https://arxiv.org/pdf/2601.02589)
+[![Apache 2.0 license](https://img.shields.io/badge/License-Apache_2.0-28745B?style=flat-square)](LICENSE)
 
-```
-Scientific Paper → [Stage 1] → Concept Graph → [Stage 2] → Section Plan → [Stage 3] → Patent Description
-```
+[Quick start](#quick-start) · [Method](#method) · [Evaluation](#evaluation) · [Citation](#citation)
 
-### Stage 1: Concept Graph Induction
-- 9-step structured reasoning: Field, TechProblem, PriorArt, Novelty, Solution, Implementation, Effects, Embodiment, Figure
-- Generates multiple candidate graphs and merges them using LLM-based consolidation
-- Creates directed graph with predefined relations: solves, implements, causes, improves, validates
+</div>
 
-### Stage 2: Paragraph Planning
-- Clusters nodes into patent sections: Field, Background, Summary, Detailed Description, Effects
-- Multi-sampling with lightweight gating based on connectivity and consistency metrics
-- Enforces patent-specific constraints and prerequisite ordering
+FlowPlan-G2P takes an English-language scientific paper in Markdown and drafts a patent description. It extracts the technical elements and how they depend on one another, then uses that graph to plan and draft the sections. You can export the concept graph as JSON or inspect both the graph and section plan from Python.
 
-### Stage 3: Graph-Conditioned Generation
-- Generates patent text using section-specific templates and boilerplate phrases
-- Conditions generation on linearized subgraph representations
-- Ensures legalistic phrasing and repetitive elaboration typical of patents
+## Quick start
 
-## Installation
-
-### Requirements
-- Python 3.8+
-- [uv](https://docs.astral.sh/uv/) - Fast Python package and project manager
-
-### Quick Start
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/). The repository pins Python 3.11.
 
 ```bash
-# Install uv if you haven't already
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Clone the repository
 git clone https://github.com/repoofideas/flowplan_g2p.git
 cd flowplan_g2p
-
-# Create virtual environment and install dependencies
 uv sync
 ```
 
-### Install with Bedrock Support
-
-If you plan to use AWS Bedrock as your LLM provider, install the optional Bedrock dependencies:
+Save your source paper as UTF-8 Markdown. Set your provider's credentials, then run:
 
 ```bash
-pip install flowplan-g2p[bedrock]
-# or with uv
-uv sync --extra bedrock
+uv run flowplan-g2p paper.md patent_description.md --export-graph concept_graph.json
 ```
 
-### Environment Variables
+This command uses OpenAI by default, reads `OPENAI_API_KEY` from the environment, and writes the draft and graph to the paths shown above.
 
-Copy the `.env.example` file and fill in your API keys:
+| Provider | Credentials | CLI options |
+| --- | --- | --- |
+| OpenAI | `OPENAI_API_KEY` | `--provider openai` |
+| Anthropic | `ANTHROPIC_API_KEY` | `--provider anthropic` |
+| AWS Bedrock | AWS credentials with `bedrock:InvokeModel` access | Run `uv sync --extra bedrock`, then add `--provider bedrock --aws-region <region>` |
 
-```bash
-cp .env.example .env
+Run `uv run flowplan-g2p --help` for all options. Use `--model` to select a model ID for your provider.
+
+## Method
+
+```mermaid
+flowchart LR
+    A["Scientific paper"] -->|"1. Concept Graph Induction"| B["Directed concept graph"]
+    B -->|"2. Section-Level Planning"| C["Ordered section subgraphs"]
+    C -->|"3. Graph-Conditioned Generation"| D["Patent description"]
 ```
 
-Set the API key for your chosen provider:
+1. **Concept Graph Induction.** Extract technical content across nine drafting categories. Build one rule-based graph and two LLM-generated candidates by default. Merge nodes by identifier, resolve competing edge labels by vote, and repair missing required categories.
+2. **Section-Level Planning.** Sample candidate assignments to Field, Background, Summary, Detailed Description, and Effects. Use intra-section connectivity and category homogeneity as gates. Rank candidates with a score that includes drafting-rule penalties, and select the highest-scoring plan as a fallback if no candidate passes.
+3. **Graph-Conditioned Generation.** Serialize the concepts and internal edges of each selected section subgraph. Draft each section with its own instructions and assemble the generated text in section order.
 
-```bash
-# For OpenAI (default provider)
-export OPENAI_API_KEY=your-openai-api-key-here
+<details>
+<summary><strong>Planning defaults and Python API</strong></summary>
 
-# For Anthropic
-export ANTHROPIC_API_KEY=your-anthropic-api-key-here
-
-# For AWS Bedrock, configure AWS credentials via AWS CLI or environment variables
-aws configure
-```
-
-## Usage
-
-### Command Line Interface
-
-**OpenAI (default):**
-```bash
-uv run flowplan-g2p input_paper.md output_patent.md --provider openai
-```
-
-**Anthropic:**
-```bash
-uv run flowplan-g2p input_paper.md output_patent.md --provider anthropic
-```
-
-**AWS Bedrock:**
-```bash
-uv run flowplan-g2p input_paper.md output_patent.md --provider bedrock --aws-region us-west-2
-```
-
-**With custom parameters:**
-```bash
-uv run flowplan-g2p input_paper.md output_patent.md --candidates 5 --k 3 --tau-c 0.6
-```
-
-**Export intermediate concept graph:**
-```bash
-uv run flowplan-g2p input_paper.md output_patent.md --export-graph concept_graph.json
-```
-
-**Validate setup only:**
-```bash
-uv run flowplan-g2p --validate-only --provider openai
-```
-
-**Using main.py directly:**
-```bash
-uv run python main.py input_paper.md output_patent.md --provider anthropic
-```
-
-### Parameters
-
-**Stage 1 (Concept Induction):**
-- `--candidates N`: Number of concept graph candidates to generate and merge (default: 3)
-
-**Stage 2 (Paragraph Planning):**
-- `--k N`: Number of section plan candidates to generate (default: 5)
-- `--tau-c FLOAT`: Connectivity threshold for section planning (default: 0.5)
-- `--tau-s FLOAT`: Semantic consistency threshold (default: 0.6)
-
-**LLM Configuration:**
-- `--provider`: LLM provider — `openai` (default), `anthropic`, or `bedrock`
-- `--model`: Model identifier (e.g., `gpt-4o`, `claude-sonnet-4-20250514`); uses provider default if omitted
-- `--api-key`: API key for the selected provider (falls back to environment variable if omitted)
-- `--max-tokens N`: Maximum tokens per generation (default: 4096)
-- `--temperature FLOAT`: Generation temperature (default: 0.2)
-- `--aws-region REGION`: AWS region for Bedrock (default: us-east-1)
-
-### Python API
+| Option | Default | Controls |
+| --- | ---: | --- |
+| `--candidates` | 3 | Concept graph candidates |
+| `--k` | 5 | Section plan candidates |
+| `--tau-c` | 0.5 | Connectivity threshold |
+| `--tau-s` | 0.6 | Category homogeneity threshold |
+| `--max-tokens` | 4096 | Maximum tokens per generation request |
 
 ```python
 from flowplan_g2p import FlowPlanG2P, LLMConfig
 
-# OpenAI (default)
-config = LLMConfig(provider="openai")
-pipeline = FlowPlanG2P(llm_config=config)
-
-# Anthropic with explicit API key
-config = LLMConfig(provider="anthropic", api_key="your-anthropic-key")
-pipeline = FlowPlanG2P(llm_config=config)
-
-# AWS Bedrock
-config = LLMConfig(provider="bedrock", aws_region="us-west-2")
-pipeline = FlowPlanG2P(llm_config=config)
-
-# Process paper to patent
-patent_text = pipeline.process_paper_to_patent(
+pipeline = FlowPlanG2P(llm_config=LLMConfig(provider="openai"))
+pipeline.process_paper_to_patent(
     input_paper_path="paper.md",
-    output_patent_path="patent.md",
-    num_candidates=3,
-    k=5
+    output_patent_path="patent_description.md",
 )
 
-# Access intermediate results
-results = pipeline.get_intermediate_results()
-concept_graph = results['concept_graph']
-section_plan = results['section_plan']
+artifacts = pipeline.get_intermediate_results()
+concept_graph = artifacts["concept_graph"]
+section_plan = artifacts["section_plan"]
 ```
 
-### Testing
+</details>
 
-Run the test suite (no API keys required):
+## Evaluation
 
-```bash
-uv run pytest tests/ -v
-```
+The paper evaluates FlowPlan-G2P on **146 curated paper–patent pairs** from Pap2Pat-EvalGold. Four patent experts rated outputs on a subset of **75 paper–patent pairs**. [Pap2Pat-EvalGold and Pat-DEVAL](https://arxiv.org/abs/2601.00166) · [Upstream PAP2PAT dataset and code](https://github.com/boschresearch/Pap2Pat)
 
-## Input/Output Format
+| Measure | Baseline | FlowPlan-G2P |
+| --- | --- | --- |
+| Expert legal-professional compliance (1–5) | Zero-shot · 1.5 | **4.7** |
+| Overall Pat-DEVAL (1–5) | Few-shot Sonnet-4.5 · 2.3 | Llama-4-Scout with FlowPlan-G2P · **4.3** |
 
-### Input
-- **Format**: Markdown (.md) files
-- **Content**: Scientific paper with standard academic structure (abstract, introduction, methods, results, etc.)
-- **Encoding**: UTF-8
+On the full benchmark, zero-shot prompting had the highest BERTScore and ROUGE-L among the systems in the surface-metric comparison. It received the lowest expert legal-professional compliance rating on the expert-rated subset. See the [paper](https://arxiv.org/abs/2601.02589) for the full comparisons and ablations.
 
-### Output
-- **Format**: Markdown (.md) files
-- **Structure**: Patent description with canonical sections:
-  - Field of the Invention
-  - Background of the Invention
-  - Summary of the Invention
-  - Detailed Description of the Invention
-  - Effects of the Invention
-
-## Provider Notes
-
-### OpenAI
-- Default model: `gpt-4o`
-- Requires `OPENAI_API_KEY` environment variable or `--api-key` flag
-
-### Anthropic
-- Default model: `claude-sonnet-4-20250514`
-- Requires `ANTHROPIC_API_KEY` environment variable or `--api-key` flag
-
-### AWS Bedrock
-- Default model: `us.anthropic.claude-sonnet-4-20250514-v1:0`
-- Requires AWS credentials configured via AWS CLI, environment variables, or IAM roles
-- Install with: `pip install flowplan-g2p[bedrock]`
-- Ensure Bedrock service is available in your region and you have `bedrock:InvokeModel` permissions for your chosen model
-
-## Project Structure
-
-```
-flowplan_g2p/
-├── flowplan_g2p/           # Main package
-│   ├── __init__.py         # Package public API
-│   ├── cli.py              # Command-line interface
-│   ├── graph.py            # Graph data structures (ConceptGraph, ConceptNode, ConceptEdge)
-│   ├── llm_client.py       # Multi-provider LLM client abstraction
-│   ├── pipeline.py         # Main pipeline orchestration
-│   └── stages/             # Pipeline stages
-│       ├── __init__.py
-│       ├── concept_induction.py    # Stage 1: Concept Graph Induction
-│       ├── paragraph_planning.py   # Stage 2: Paragraph Planning
-│       └── graph_generation.py     # Stage 3: Graph-Conditioned Generation
-├── tests/                  # Test suite (runs without API keys)
-│   ├── test_graph.py
-│   ├── test_llm_client.py
-│   ├── test_cli.py
-│   └── test_pipeline.py
-├── main.py                 # Alternative CLI entry point
-├── .env.example            # Environment variable template
-├── pyproject.toml          # Project configuration
-├── Makefile                # Development commands
-├── DEVELOPMENT.md          # Development guide
-└── README.md               # This file
-```
-
-## Evaluation Dataset
-
-The Pap2Pat dataset used for evaluation is available from the upstream repository:
-[https://github.com/Franck-Dernoncourt/Pap2Pat](https://github.com/Franck-Dernoncourt/Pap2Pat)
-
-## Performance
-
-Typical execution times (depends on paper length and provider):
-- **Stage 1** (Concept Induction): 30-60 seconds
-- **Stage 2** (Paragraph Planning): 10-20 seconds
-- **Stage 3** (Text Generation): 20-40 seconds
-- **Total**: 1-2 minutes per paper
-
-## Troubleshooting
-
-### API Key Issues
-- Ensure the correct environment variable is set for your provider (`OPENAI_API_KEY` or `ANTHROPIC_API_KEY`)
-- You can pass the key directly with `--api-key` to bypass environment variables
-- Run `flowplan-g2p --validate-only --provider <your-provider>` to test connectivity
-
-### Provider-Specific Issues
-
-**OpenAI:**
-- Verify your API key has access to the model you're using (default: `gpt-4o`)
-- Check your OpenAI account for rate limits or billing issues
-
-**Anthropic:**
-- Verify your API key is valid and has access to the model (default: `claude-sonnet-4-20250514`)
-- Check Anthropic console for rate limits
-
-**AWS Bedrock:**
-- Ensure `boto3` is installed: `pip install flowplan-g2p[bedrock]`
-- Verify AWS credentials are configured: `aws sts get-caller-identity`
-- Check that Bedrock is available in your region and model access is granted
-
-### Rate Limiting
-- The client includes automatic retry with exponential backoff
-- If you encounter persistent rate limits, increase retry delays or reduce concurrency
-
-### Generation Quality
-- Adjust `temperature` parameter (lower = more conservative)
-- Increase `num_candidates` for better concept graph quality
-- Tune `tau_c` and `tau_s` thresholds for section planning
-
-### Validation
-
-Always run validation before processing:
-```bash
-uv run flowplan-g2p --validate-only --provider openai
-```
-
-This checks provider connectivity, model access, and pipeline component initialization.
-
-## Limitations
-
-- Optimized for English-language scientific papers
-- Patent output follows US patent format conventions
-- Processing time scales with paper length
-- Quality depends on input paper structure and clarity
+FlowPlan-G2P produces research drafts of patent descriptions. The pipeline does not generate claims, search for prior art, or determine patentability.
 
 ## Citation
 
-If you use this implementation, please cite the original paper:
+Use the arXiv record when citing the publicly available paper.
 
 ```bibtex
-@inproceedings{pan2026flowplan,
-  title={FlowPlan-G2P: Graph-Based Paragraph Planning for Structured Patent Description Generation},
-  author={Pan, Kris W and Yoo, Yongmin},
-  booktitle={Proceedings of the 64th Annual Meeting of the Association for Computational Linguistics (ACL)},
-  year={2026}
+@misc{pan2026flowplang2p,
+  title         = {{FlowPlan-G2P}: A Structured Generation Framework for
+                   Transforming Scientific Papers into Patent Descriptions},
+  author        = {Pan, Kris W and Yoo, Yongmin},
+  year          = {2026},
+  eprint        = {2601.02589},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL},
+  doi           = {10.48550/arXiv.2601.02589},
+  url           = {https://arxiv.org/abs/2601.02589}
 }
 ```
 
-## License
+## Development and license
 
-This implementation is provided for research purposes. Please refer to the LICENSE file for terms.
+Run `uv sync --extra test` followed by `uv run pytest` to run the test suite. See the [development guide](DEVELOPMENT.md) for contributor setup.
+
+The implementation is available under the [Apache License 2.0](LICENSE).
